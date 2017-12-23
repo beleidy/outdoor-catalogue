@@ -17,6 +17,7 @@ app.secret_key = os.environ.get('SECRET_KEY')
 
 GOOGLE_SECRET = json.loads(os.environ.get("GOOGLE_SECRET"))
 CLIENT_ID = GOOGLE_SECRET['web']['client_id']
+CLIENT_SECRET = GOOGLE_SECRET['web']['client_secret']
 
 
 # Routes for authentication
@@ -45,8 +46,9 @@ def gconnect():
     code = bytes.decode(request.data)
 
     # Exchange auth code for access token, refresh token, and ID token
-    credentials = client.credentials_from_clientsecrets_and_code(
-        'client_secret.json',
+    credentials = client.credentials_from_code(
+        CLIENT_ID,
+        CLIENT_SECRET,
         ['https://www.googleapis.com/auth/drive.appdata', 'profile', 'email'],
         code)
 
