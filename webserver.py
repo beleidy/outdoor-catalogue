@@ -1,3 +1,4 @@
+import os
 import random
 import string
 import httplib2
@@ -12,7 +13,7 @@ from flask import (Flask, request, redirect, url_for, render_template,
 app = Flask(__name__)
 
 # MAKE SURE YOU CHANGE THE SECRET KEY BEFORE DEPLOYMENT
-app.secret_key = "TOBECHANGED"
+app.secret_key = os.environ.get('SECRET_KEY')
 
 CLIENT_ID = json.loads(
     open('client_secret.json', 'r').read())['web']['client_id']
@@ -246,5 +247,5 @@ def ViewItemDetails(itemId):
 
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run(host='0.0.0.0', port=5000)
+    app.debug = False
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000))
