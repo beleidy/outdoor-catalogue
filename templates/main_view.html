@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block menu %}
+    <ul>
+        <li>
+            <a href={{ url_for('MainView') }} class="category-link {{ "active" if not activeCategory }}">
+                All categories
+            </a>
+        </li>
+        {% for cat in cats %}
+            <li>
+                    <a href={{ url_for('CategoryView', categoryId=cat.id) }} class="category-link {{ "active" if activeCategory and activeCategory.name == cat.name }}">
+                        {{ cat.name }} ({{ countList[loop.index-1] }})
+                    </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock menu %}
+
+{% block listing %}
+    <ul>
+        {% for item in items %}
+            <li><a href={{ url_for('ItemView', itemId=item.id) }}>{{ item.name }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock listing %}

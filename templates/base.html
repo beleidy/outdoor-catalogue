@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href={{ url_for('static', filename='css/style.css') }}>
+</head>
+<html>
+    <body>
+        {% block navbar %}
+        <div class="nav">
+            <div class='logo'>
+                <a href={{ url_for("MainView") }}>
+                    <h1>
+                        The Outdoor Shop
+                    </h1>        
+                </a>
+            </div>
+            {% if login_session['logged_in'] == True %}
+            <div class="add-item-button-container">
+                <a href={{ url_for('AddItemView')}}>
+                    <button>Add Item</button>
+                </a>
+            </div>
+            <div class="logout-button-container">
+                <a href="{{ url_for('gdisconnect') }}">
+                    <button>Logout</button>
+                </a>
+            </div>
+            {% else %}
+            <div class="login-button-container">
+                <a href="{{ url_for('showLogin') }}">
+                    <button>Login</button>
+                </a>
+            </div>
+            {% endif %}
+           
+        </div>
+        {% endblock navbar %}
+        <div class="container">
+            <div class="aside">
+                {% block menu %}{% endblock menu %}
+            </div>
+            <div class="main-view">
+                {% block listing %}{% endblock listing %}
+            </div>
+        </div>
+    </body>
+</html>

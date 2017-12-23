@@ -1,0 +1,65 @@
+ <html itemscope itemtype="http://schema.org/Article">
+     <head>
+        <link rel="stylesheet" type="text/css" href={{ url_for('static', filename='css/style.css') }}>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+        <script src="https://apis.google.com/js/client:platform.js?onload=start" async defer> </script>
+        <script>
+            function start() {
+                gapi.load('auth2', function() {
+                    auth2 = gapi.auth2.init({
+                        client_id: "{{ CLIENT_ID }}",
+                    });
+                });
+            }
+        </script>
+     </head>
+     <body>
+        <div class="login-container">
+            <div class="login-message">Please sign in using one of the providers below</div>
+            <div class="google-button">
+                <button id="signinButton"><img src="{{ url_for('static', filename='img/google.png') }}" /></button>
+                <script>
+                    $('#signinButton').click(function() {
+                        console.log("Click event handler fired");
+                        // signInCallback
+                        auth2.grantOfflineAccess().then(signInCallback);
+                        });
+                </script>
+            </div>
+
+            <div id="result"></div>
+        </div>
+        <script>
+            function signInCallback(authResult){
+                if (authResult['code']){
+                    $('#signinButton').attr('style', 'display: none');
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '/gconnect?state={{ STATE }}',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        contentType: 'application/octet-stream; charset=utf-8',
+                        success: function(result){
+                            if (result) {
+                                $('#result').html('<h1>'+ result + '</h1></br><h2>Redirecting you to our homepage...</h2>')
+                                setTimeout(function() {
+                                  window.location.href = "/";
+                                }, 4000);
+                            } else if (authResult['error']) {
+                                console.log('There was an error: ' + authResult['error']);
+                            } else {
+                                $('#result').html('Failed to make a server-side call. Check your configuration and console.');
+                            }
+                        },
+                        processData: false,
+                        data: authResult['code']
+                    })
+                } else {
+                    console.log("There was an error with receiving the authCode from Google")
+                }
+            }     
+        </script>
+    </body>
+</html>

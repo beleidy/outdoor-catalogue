@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block menu %}
+    <h3>
+        <a href={{ url_for('CategoryView', categoryId=category.id) }}> {{ category.name }}</a>
+    </h3>
+    <ul>
+        {% for item in items %}
+            <li>
+                <a href={{url_for('ItemView', itemId=item.id)}} class="item-link {{ "active" if item.id == activeItem.id }}">
+                {{ item.name }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock menu %}
+
+{% block listing %}
+    <p class="item-title">{{ activeItem.name }}</p>
+    <p class="item-description">{{ activeItem.description }}</p>
+    {% if login_session['logged_in'] == True and login_session['db_user_id'] == activeItem.owner_id %}
+    <a href={{ url_for('EditItemView', itemId=activeItem.id) }}><button>Edit Item</button></a>
+    <a href={{ url_for('DeleteItemView', itemId=activeItem.id) }}><button>Delete Item</button></a>
+    {% endif %}
+    
+{% endblock listing %}

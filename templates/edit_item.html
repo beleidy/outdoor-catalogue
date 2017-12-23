@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block listing %}
+<h2> Edit Item: {{ item.name }} </h2>
+<form action={{ url_for('EditItemView', itemId=item.id) }} method='POST'>
+    <div>
+        <label for="name">Name</label>
+        <input type="text" name="item_name" id="name" value="{{ item.name }}" />
+    </div>
+    <div>
+        <label for="description">Description</label>
+        <input type="text" name="item_description" id="description" value="{{ item.description }}" />
+    </div>
+    <div>
+        <label for="item-category">Category</label>
+        <select name="item_category" id="category">
+            {% for cat in categories %}
+                <option value={{ cat.id }} {{"selected" if cat.id == item.category_id}}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <input type="submit" />
+    </div>
+</form>
+{% endblock listing %}
