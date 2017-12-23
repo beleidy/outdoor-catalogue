@@ -15,8 +15,8 @@ app = Flask(__name__)
 # MAKE SURE YOU CHANGE THE SECRET KEY BEFORE DEPLOYMENT
 app.secret_key = os.environ.get('SECRET_KEY')
 
-# CLIENT_ID = json.loads(
-#     open('client_secret.json', 'r').read())['web']['client_id']
+GOOGLE_SECRET = os.environ.get("GOOGLE_SECRET")
+CLIENT_ID = GOOGLE_SECRET['web']['client_id']
 
 
 # Routes for authentication
