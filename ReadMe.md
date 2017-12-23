@@ -18,6 +18,8 @@ You will need to have these installed for the site to work.
 6. requests
 7. JSON
 
+Alternatively you can use `pipenv install`
+
 ## Installation
 This package comes with a pre-built sqlite database already populated with some items. The database is in `itemcatalgue.db`
 
@@ -26,6 +28,15 @@ To see how this database is structed see `database_setup.py` You will find the s
 The database was populated using `item_populator.py` You can see what has been aded to the database there.
 
 Run `webserver.py`. You are now ready to access the site at `localhost:5000//`
+
+### Some changes have been made to deploy on heroku
+
+In order for OAuth2 to work on your installation, you will need to setup an API secret with Google and have your own client secret file. 
+
+You will then need to change where the server finds this information based on your setup. In my case, I am deploying on heroku and using its enviornment variables to keep these values secret. 
+
+a heroku enviornment variable is also used for the flask app secret that protects your session.
+
 
 ### Setting up a clean database
 If you would like to setup your own empty database:
