@@ -1,73 +1,78 @@
 import os
 import random
+import hashlib
 import string
 import httplib2
 import json
 import requests
-from oauth2client import client
+import logging
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
 from itemdb import *
 from flask import session as login_session
 from flask import (Flask, request, redirect, url_for, render_template,
                    make_response, jsonify)
 
-app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+application = Flask(__name__)
+
+flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+    'client_secret.json', scopes=['openid', 'email', 'profile'])
+
+# flow.redirect_uri = 'https://catalogue.amr.elbeleidy.me/gconnect'
+flow.redirect_uri = 'http://localhost:5000/gconnect'
 
 # MAKE SURE YOU CHANGE THE SECRET KEY BEFORE DEPLOYMENT
-app.secret_key = os.environ.get('SECRET_KEY')
-
-GOOGLE_SECRET = json.loads(os.environ.get("GOOGLE_SECRET"))
-CLIENT_ID = GOOGLE_SECRET['web']['client_id']
-CLIENT_SECRET = GOOGLE_SECRET['web']['client_secret']
+application.secret_key = os.environ.get('SECRET_KEY',
+                                        "REPLACE THIS VERY SECRET KEY")
 
 
 # Routes for authentication
-@app.route('/login')
+@application.route('/login')
 def showLogin():
-    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                    for x in range(32))
-    login_session['state'] = state
-    return render_template('login.html', STATE=state, CLIENT_ID=CLIENT_ID)
+    session_state = hashlib.sha256(os.urandom(1024)).hexdigest()
+    login_session['state'] = session_state
+
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        state=session_state)
+
+    return redirect(authorization_url)
 
 
-@app.route('/gconnect', methods=['POST'])
+@application.route('/gconnect')
 def gconnect():
     # Validate the state token
     if request.args.get('state') != login_session['state']:
-        response = make_response(json.dumps('Invalid State Parameter', 401))
+        response = make_response(json.dumps('Invalid State Parameter'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
 
-    # Protect against CSRF attacks
-    if not request.headers.get('X-Requested-With'):
-        response = make_response(json.dumps('No X-Requested-With header', 403))
-        response.headers['Content-Type'] = 'application/json'
-        return response
-
-    code = bytes.decode(request.data)
+    authorization_response = request.url
+    flow.fetch_token(authorization_response=authorization_response)
 
     # Exchange auth code for access token, refresh token, and ID token
-    credentials = client.credentials_from_code(
-        CLIENT_ID,
-        CLIENT_SECRET,
-        ['https://www.googleapis.com/auth/drive.appdata', 'profile', 'email'],
-        code)
+    credentials = flow.credentials
+    print(credentials)
 
-    # Get user info
-    userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
-    params = {'access_token': credentials.access_token, 'alt': 'json'}
-    answer = requests.get(userinfo_url, params=params)
-    userInfo = answer.json()
+    # # Get user info
+    # userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+    # params = {'access_token': credentials.access_token, 'alt': 'json'}
+    # answer = requests.get(userinfo_url, params=params)
+    # userInfo = answer.json()
 
-    # Get profile info from ID token
-    email = credentials.id_token['email']
-    name = userInfo['name']
+    # # Get profile info from ID token
+    # email = credentials.id_token['email']
+    # name = userInfo['name']
 
-    # Store the information in the login_session
-    login_session['email'] = email
-    login_session['logged_in'] = True
-    login_session['username'] = name
-    login_session['access_token'] = credentials.access_token
-    login_session['db_user_id'] = createNewUser(login_session)
+    # # Store the information in the login_session
+    # login_session['email'] = email
+    # login_session['logged_in'] = True
+    # login_session['username'] = name
+    # login_session['access_token'] = credentials.access_token
+    # login_session['db_user_id'] = createNewUser(login_session)
 
     # Send back a welcome message
     # this will be handled by the AJAX script on the client side
@@ -77,7 +82,7 @@ def gconnect():
     return output
 
 
-@app.route('/gdisconnect')
+@application.route('/gdisconnect')
 def gdisconnect():
     access_token = login_session.get('access_token', None)
 
@@ -104,7 +109,7 @@ def gdisconnect():
 
 
 # The routes for the website
-@app.route('/')
+@application.route('/')
 def MainView():
     # Get the data we need from the db
     categories = getAllCategories()
@@ -117,17 +122,18 @@ def MainView():
     for cat in categories:
         countList.append(getItemCountInCategory(cat.id))
 
-    return render_template('main_view.html',
-                           cats=categories,
-                           catCount=categoryCount,
-                           countList=countList,
-                           items=items,
-                           itemCount=itemCount,
-                           login_session=login_session,
-                           )
+    return render_template(
+        'main_view.html',
+        cats=categories,
+        catCount=categoryCount,
+        countList=countList,
+        items=items,
+        itemCount=itemCount,
+        login_session=login_session,
+    )
 
 
-@app.route('/categories/<int:categoryId>')
+@application.route('/categories/<int:categoryId>')
 def CategoryView(categoryId):
     # Get the data we need from the db
     categories = getAllCategories()
@@ -141,30 +147,32 @@ def CategoryView(categoryId):
     for cat in categories:
         countList.append(getItemCountInCategory(cat.id))
 
-    return render_template('main_view.html',
-                           activeCategory=activeCategory,
-                           cats=categories,
-                           catCount=categoryCount,
-                           countList=countList,
-                           items=items,
-                           itemCount=itemCount,
-                           login_session=login_session)
+    return render_template(
+        'main_view.html',
+        activeCategory=activeCategory,
+        cats=categories,
+        catCount=categoryCount,
+        countList=countList,
+        items=items,
+        itemCount=itemCount,
+        login_session=login_session)
 
 
-@app.route('/items/<int:itemId>')
+@application.route('/items/<int:itemId>')
 def ItemView(itemId):
     activeItem = getItemByID(itemId)
     category = getCategoryByID(activeItem.category_id)
     items = getItemsByCategory(activeItem.category_id)
 
-    return render_template('item_view.html',
-                           activeItem=activeItem,
-                           category=category,
-                           items=items,
-                           login_session=login_session)
+    return render_template(
+        'item_view.html',
+        activeItem=activeItem,
+        category=category,
+        items=items,
+        login_session=login_session)
 
 
-@app.route('/items/addItem', methods=['GET', 'POST'])
+@application.route('/items/addItem', methods=['GET', 'POST'])
 def AddItemView():
     if not login_session.get('logged_in', False):
         return render_template(
@@ -174,7 +182,8 @@ def AddItemView():
         # Check that the user is logged in
         categories = getAllCategories()
         return render_template(
-            'add_item.html', categories=categories,
+            'add_item.html',
+            categories=categories,
             login_session=login_session)
 
     if request.method == 'POST':
@@ -187,7 +196,7 @@ def AddItemView():
         return ItemView(addedItem.id)
 
 
-@app.route('/items/<int:itemId>/edit', methods=['GET', 'POST'])
+@application.route('/items/<int:itemId>/edit', methods=['GET', 'POST'])
 def EditItemView(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
@@ -202,8 +211,10 @@ def EditItemView(itemId):
     if request.method == 'GET':
         categories = getAllCategories()
         return render_template(
-            'edit_item.html', categories=categories,
-            item=item, login_session=login_session)
+            'edit_item.html',
+            categories=categories,
+            item=item,
+            login_session=login_session)
 
     if request.method == 'POST':
         newItem = {}
@@ -214,7 +225,7 @@ def EditItemView(itemId):
         return ItemView(editedItem.id)
 
 
-@app.route('/items/<int:itemId>/delete', methods=['GET', 'POST'])
+@application.route('/items/<int:itemId>/delete', methods=['GET', 'POST'])
 def DeleteItemView(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
@@ -237,7 +248,7 @@ def DeleteItemView(itemId):
 
 
 # Route for API
-@app.route('/api/v0.1/items/<int:itemId>')
+@application.route('/api/v0.1/items/<int:itemId>')
 def ViewItemDetails(itemId):
     item = getItemByID(itemId)
     category = getCategoryByID(item.category_id)
@@ -249,5 +260,5 @@ def ViewItemDetails(itemId):
 
 
 if __name__ == '__main__':
-    app.debug = False
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    application.debug = True
+    application.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))

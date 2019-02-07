@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outdoor-catalogue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outdoor-catalogue
+  template:
+    metadata:
+      labels:
+        app: outdoor-catalogue
+    spec:
+      containers:
+        - name: outdoor-catalogue-app
+          image: eu.gcr.io/portfolio-230113/outdoor-catalogue
+          resources:
+            requests:
+              cpu: "20m"

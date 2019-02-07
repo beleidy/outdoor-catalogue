@@ -1,18 +1,18 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 flask = "*"
 "httplib2" = "*"
 requests = "*"
 "oauth2client" = "*"
 sqlalchemy = "*"
-
+google-api-python-client = "*"
+google-auth = "*"
+google-auth-oauthlib = "*"
+google-auth-httplib2 = "*"
+gunicorn = "*"
 
 [dev-packages]
-
