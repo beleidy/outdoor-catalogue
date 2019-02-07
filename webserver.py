@@ -15,7 +15,8 @@ from flask import (Flask, request, redirect, url_for, render_template,
 application = Flask(__name__)
 
 flow = google_auth_oauthlib.flow.Flow.from_client_config(
-    os.environ.get('CLIENT_SECRET'), scopes=['openid', 'email', 'profile'])
+    json.loads(os.environ.get('CLIENT_SECRET')),
+    scopes=['openid', 'email', 'profile'])
 
 flow.redirect_uri = 'https://catalogue.amr.elbeleidy.me/gconnect'
 
