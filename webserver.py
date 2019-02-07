@@ -5,7 +5,6 @@ import string
 import httplib2
 import json
 import requests
-import logging
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from itemdb import *
@@ -13,18 +12,15 @@ from flask import session as login_session
 from flask import (Flask, request, redirect, url_for, render_template,
                    make_response, jsonify)
 
-logging.basicConfig(level=logging.DEBUG)
-
 application = Flask(__name__)
 
-flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-    'client_secret.json', scopes=['openid', 'email', 'profile'])
+flow = google_auth_oauthlib.flow.Flow.from_client_config(
+    os.environ.get('CLIENT_SECRET'), scopes=['openid', 'email', 'profile'])
 
-# flow.redirect_uri = 'https://catalogue.amr.elbeleidy.me/gconnect'
-flow.redirect_uri = 'http://localhost:5000/gconnect'
+flow.redirect_uri = 'https://catalogue.amr.elbeleidy.me/gconnect'
 
 # MAKE SURE YOU CHANGE THE SECRET KEY BEFORE DEPLOYMENT
-application.secret_key = os.environ.get('SECRET_KEY',
+application.secret_key = os.environ.get('FLASK_SECRET_KEY',
                                         "REPLACE THIS VERY SECRET KEY")
 
 
@@ -35,8 +31,8 @@ def showLogin():
     login_session['state'] = session_state
 
     authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true',
+        # access_type='offline',
+        # include_granted_scopes='true',
         state=session_state)
 
     return redirect(authorization_url)

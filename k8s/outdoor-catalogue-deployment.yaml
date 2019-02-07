@@ -15,6 +15,17 @@ spec:
       containers:
         - name: outdoor-catalogue-app
           image: eu.gcr.io/portfolio-230113/outdoor-catalogue
+          env:
+            - name: FLASK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: outdoor-catalogue-secrets
+                  key: FLASK_SECRET_KEY
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: outdoor-catalogue-secrets
+                  key: CLIENT_SECRET
           resources:
             requests:
-              cpu: "20m"
+              cpu: "25m"
