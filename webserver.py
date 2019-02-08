@@ -1,61 +1,101 @@
-import os
-import random
 import hashlib
-import string
-import httplib2
 import json
+import jwt
+from jwt.algorithms import RSAAlgorithm
+import os
+
 import requests
+from flask import (Flask, jsonify, make_response, redirect, render_template,
+                   request)
+from flask import session as login_session
+from flask import url_for
+
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from itemdb import *
-from flask import session as login_session
-from flask import (Flask, request, redirect, url_for, render_template,
-                   make_response, jsonify)
 
 application = Flask(__name__)
 
-flow = google_auth_oauthlib.flow.Flow.from_client_config(
-    json.loads(os.environ.get('CLIENT_SECRET')),
-    scopes=['openid', 'email', 'profile'])
-
-flow.redirect_uri = 'https://catalogue.amr.elbeleidy.me/gconnect'
-
-# MAKE SURE YOU CHANGE THE SECRET KEY BEFORE DEPLOYMENT
+# Defaults application secret in case not specified in enviornment
 application.secret_key = os.environ.get('FLASK_SECRET_KEY',
                                         "REPLACE THIS VERY SECRET KEY")
+
+# Sets client secret from file if developing locally
+# otherwise from enviornment
+DEV = os.environ["DEV"]
+if DEV:
+    with open("client_secret.json", "r") as file:
+        CLIENT_SECRET = json.loads(file.read())
+else:
+    CLIENT_SECRET = json.loads(os.environ.get('CLIENT_SECRET'))
+
+SCOPES = [
+    'openid', 'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
+]
+
+JWKS_KEYS = False
 
 
 # Routes for authentication
 @application.route('/login')
-def showLogin():
-    session_state = hashlib.sha256(os.urandom(1024)).hexdigest()
-    login_session['state'] = session_state
+def login():
+    state = hashlib.sha256(os.urandom(1024)).hexdigest()
+    login_session['state'] = state
 
-    authorization_url, state = flow.authorization_url(
-        # access_type='offline',
-        # include_granted_scopes='true',
-        state=session_state)
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(
+        CLIENT_SECRET, scopes=SCOPES)
+
+    flow.redirect_uri = url_for('oauth2_callback', _external=True)
+
+    authorization_url, _ = flow.authorization_url(state=state)
 
     return redirect(authorization_url)
 
 
-@application.route('/gconnect')
-def gconnect():
-    # Validate the state token
-    if request.args.get('state') != login_session['state']:
+@application.route('/oauth2_callback')
+def oauth2_callback():
+    state = login_session['state']
+
+    # Validate state token
+    if request.args.get('state') != state:
         response = make_response(json.dumps('Invalid State Parameter'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
 
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(
+        CLIENT_SECRET, scopes=SCOPES)
+
+    flow.redirect_uri = url_for('oauth2_callback', _external=True)
+
     authorization_response = request.url
+    # Replace with https to avoid InsecureTrasnportError
+    authorization_response = authorization_response.replace('http', 'https')
+
     flow.fetch_token(authorization_response=authorization_response)
-
-    # Exchange auth code for access token, refresh token, and ID token
     credentials = flow.credentials
-    print(credentials)
+    jwt_id_token = credentials.id_token
+    print(jwt.decode(jwt_id_token, verify=False))
+    jwt_headers = jwt.get_unverified_header(jwt_id_token)
+    print(jwt_headers)
+    jwt_alg = jwt_headers['alg']
+    print(jwt_alg)
+    jwt_kid = jwt_headers['kid']
 
-    # # Get user info
-    # userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+    # if not JWKS_KEYS:
+    JWKS_KEYS = get_jwks_keys()
+    jwt_key = [key for key in JWKS_KEYS if key['kid'] == jwt_kid][0]
+
+    public_key = RSAAlgorithm.from_jwk(json.dumps(jwt_key))
+
+    audience = CLIENT_SECRET['web']['client_id']
+
+    jwt_payload = jwt.decode(
+        jwt_id_token, public_key, algorithms=[jwt_alg], audience=audience)
+    print(jwt_payload)
+
+    # Get user info
+    # userinfo_url = "https://www.googleapis.com/auth/userinfo.profile"
     # params = {'access_token': credentials.access_token, 'alt': 'json'}
     # answer = requests.get(userinfo_url, params=params)
     # userInfo = answer.json()
@@ -73,7 +113,7 @@ def gconnect():
 
     # Send back a welcome message
     # this will be handled by the AJAX script on the client side
-    output = "Welcome " + name + "\nYou are now signed in and will be" \
+    output = "Welcome\nYou are now signed in and will be" \
         "redirected to our main page shortly :)"
 
     return output
@@ -254,6 +294,18 @@ def ViewItemDetails(itemId):
     response['description'] = item.description
     response['category'] = category.name
     return jsonify(response)
+
+
+def get_jwks_keys():
+    GOOGLE_DISCOVERY_URI = "https://accounts.google.com/.well-known/openid-configuration"
+    response = requests.get(GOOGLE_DISCOVERY_URI)
+    response_json = response.json()
+    jwks_uri = response_json.get("jwks_uri", None)
+    if jwks_uri is not None:
+        response = requests.get(jwks_uri)
+        response_json = response.json()
+    keys = response_json.get("keys", None)
+    return keys
 
 
 if __name__ == '__main__':
