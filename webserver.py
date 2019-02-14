@@ -12,6 +12,7 @@ from flask import url_for
 import google_auth_oauthlib.flow
 from itemdb import *
 from web_helpers import get_jwks_keys
+import requests
 
 application = Flask(__name__)
 
@@ -71,12 +72,14 @@ def oauth2_callback():
 
     flow.fetch_token(authorization_response=authorization_response)
     credentials = flow.credentials
+
+    # Verify token comes from Google
+    global JWKS_KEYS
     jwt_id_token = credentials.id_token
     jwt_headers = jwt.get_unverified_header(jwt_id_token)
     jwt_alg = jwt_headers['alg']
     jwt_kid = jwt_headers['kid']
 
-    global JWKS_KEYS
     jwt_key = [key for key in JWKS_KEYS if key['kid'] == jwt_kid][0]
     if not jwt_key:
         JWKS_KEYS = get_jwks_keys()
@@ -88,28 +91,36 @@ def oauth2_callback():
         jwt_id_token, public_key, algorithms=[jwt_alg], audience=audience)
     print(jwt_payload)
 
-    return json.dumps(jwt_payload)
+    login_session['logged_in'] = True
+    login_session['username'] = jwt_payload['given_name']
+    login_session['email'] = jwt_payload['email']
+    login_session['credentials_token'] = credentials.token
+    login_session['db_user_id'] = createNewUser(login_session)
+
+    return redirect(url_for('main_view'))
 
 
 @application.route('/logout')
 def logout():
-    access_token = login_session.get('access_token', None)
+    credentials_token = login_session.get('credentials_token', None)
 
-    if access_token is None:
+    if credentials_token is None:
+        login_session.pop('logged_in', None)
+        login_session.pop('username', None)
+        login_session.pop('email', None)
         return render_template(
             'error.html', ERROR_MESSAGE="You are already signed out")
 
-    url = 'https://accounts.google.com/o/oauth2/revoke?' \
-        'token=%s' % login_session['access_token']
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[0]
-    print('result is ')
-    print(result)
-    if result['status'] == '200':
-        del login_session['logged_in']
-        del login_session['access_token']
-        del login_session['username']
-        del login_session['email']
+    r = requests.post(
+        'https://accounts.google.com/o/oauth2/revoke',
+        params={'token': credentials_token},
+        headers={'content-type': 'application/x-www-form-urlencoded'})
+
+    if r.status_code == requests.codes.ok:
+        login_session.pop('logged_in', None)
+        login_session.pop('username', None)
+        login_session.pop('email', None)
+        login_session.pop('credentials_token', None)
         return render_template(
             'error.html', ERROR_MESSAGE="You have signed out")
     else:
@@ -119,7 +130,7 @@ def logout():
 
 # The routes for the website
 @application.route('/')
-def MainView():
+def main_view():
     # Set a state for the login session
     get_session_state()
 

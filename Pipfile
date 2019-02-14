@@ -16,5 +16,6 @@ google-auth-httplib2 = "*"
 gunicorn = "*"
 cryptography = "*"
 pyjwt = "*"
+psycopg2 = "*"
 
 [dev-packages]
