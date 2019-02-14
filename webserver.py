@@ -4,15 +4,15 @@ import jwt
 from jwt.algorithms import RSAAlgorithm
 import os
 
-import requests
 from flask import (Flask, jsonify, make_response, redirect, render_template,
                    request)
 from flask import session as login_session
 from flask import url_for
 
-import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from itemdb import *
+from web_helpers import get_jwks_keys
+import requests
 
 application = Flask(__name__)
 
@@ -34,20 +34,18 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.profile'
 ]
 
-JWKS_KEYS = False
+JWKS_KEYS = get_jwks_keys()
 
 
 # Routes for authentication
 @application.route('/login')
 def login():
-    state = hashlib.sha256(os.urandom(1024)).hexdigest()
-    login_session['state'] = state
+    state = get_session_state()
 
     flow = google_auth_oauthlib.flow.Flow.from_client_config(
         CLIENT_SECRET, scopes=SCOPES)
 
     flow.redirect_uri = url_for('oauth2_callback', _external=True)
-
     authorization_url, _ = flow.authorization_url(state=state)
 
     return redirect(authorization_url)
@@ -55,7 +53,7 @@ def login():
 
 @application.route('/oauth2_callback')
 def oauth2_callback():
-    state = login_session['state']
+    state = get_session_state()
 
     # Validate state token
     if request.args.get('state') != state:
@@ -74,70 +72,55 @@ def oauth2_callback():
 
     flow.fetch_token(authorization_response=authorization_response)
     credentials = flow.credentials
+
+    # Verify token comes from Google
+    global JWKS_KEYS
     jwt_id_token = credentials.id_token
-    print(jwt.decode(jwt_id_token, verify=False))
     jwt_headers = jwt.get_unverified_header(jwt_id_token)
-    print(jwt_headers)
     jwt_alg = jwt_headers['alg']
-    print(jwt_alg)
     jwt_kid = jwt_headers['kid']
 
-    # if not JWKS_KEYS:
-    JWKS_KEYS = get_jwks_keys()
     jwt_key = [key for key in JWKS_KEYS if key['kid'] == jwt_kid][0]
+    if not jwt_key:
+        JWKS_KEYS = get_jwks_keys()
+        jwt_key = [key for key in JWKS_KEYS if key['kid'] == jwt_kid][0]
 
     public_key = RSAAlgorithm.from_jwk(json.dumps(jwt_key))
-
     audience = CLIENT_SECRET['web']['client_id']
-
     jwt_payload = jwt.decode(
         jwt_id_token, public_key, algorithms=[jwt_alg], audience=audience)
     print(jwt_payload)
 
-    # Get user info
-    # userinfo_url = "https://www.googleapis.com/auth/userinfo.profile"
-    # params = {'access_token': credentials.access_token, 'alt': 'json'}
-    # answer = requests.get(userinfo_url, params=params)
-    # userInfo = answer.json()
+    login_session['logged_in'] = True
+    login_session['username'] = jwt_payload['given_name']
+    login_session['email'] = jwt_payload['email']
+    login_session['credentials_token'] = credentials.token
+    login_session['db_user_id'] = createNewUser(login_session)
 
-    # # Get profile info from ID token
-    # email = credentials.id_token['email']
-    # name = userInfo['name']
-
-    # # Store the information in the login_session
-    # login_session['email'] = email
-    # login_session['logged_in'] = True
-    # login_session['username'] = name
-    # login_session['access_token'] = credentials.access_token
-    # login_session['db_user_id'] = createNewUser(login_session)
-
-    # Send back a welcome message
-    # this will be handled by the AJAX script on the client side
-    output = "Welcome\nYou are now signed in and will be" \
-        "redirected to our main page shortly :)"
-
-    return output
+    return redirect(url_for('main_view'))
 
 
-@application.route('/gdisconnect')
-def gdisconnect():
-    access_token = login_session.get('access_token', None)
+@application.route('/logout')
+def logout():
+    credentials_token = login_session.get('credentials_token', None)
 
-    if access_token is None:
+    if credentials_token is None:
+        login_session.pop('logged_in', None)
+        login_session.pop('username', None)
+        login_session.pop('email', None)
         return render_template(
             'error.html', ERROR_MESSAGE="You are already signed out")
 
-    url = 'https://accounts.google.com/o/oauth2/revoke?' \
-        'token=%s' % login_session['access_token']
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[0]
-    print('result is ')
-    print(result)
-    if result['status'] == '200':
-        del login_session['logged_in']
-        del login_session['access_token']
-        del login_session['username']
-        del login_session['email']
+    r = requests.post(
+        'https://accounts.google.com/o/oauth2/revoke',
+        params={'token': credentials_token},
+        headers={'content-type': 'application/x-www-form-urlencoded'})
+
+    if r.status_code == requests.codes.ok:
+        login_session.pop('logged_in', None)
+        login_session.pop('username', None)
+        login_session.pop('email', None)
+        login_session.pop('credentials_token', None)
         return render_template(
             'error.html', ERROR_MESSAGE="You have signed out")
     else:
@@ -147,7 +130,10 @@ def gdisconnect():
 
 # The routes for the website
 @application.route('/')
-def MainView():
+def main_view():
+    # Set a state for the login session
+    get_session_state()
+
     # Get the data we need from the db
     categories = getAllCategories()
     categoryCount = len(categories)
@@ -296,16 +282,14 @@ def ViewItemDetails(itemId):
     return jsonify(response)
 
 
-def get_jwks_keys():
-    GOOGLE_DISCOVERY_URI = "https://accounts.google.com/.well-known/openid-configuration"
-    response = requests.get(GOOGLE_DISCOVERY_URI)
-    response_json = response.json()
-    jwks_uri = response_json.get("jwks_uri", None)
-    if jwks_uri is not None:
-        response = requests.get(jwks_uri)
-        response_json = response.json()
-    keys = response_json.get("keys", None)
-    return keys
+def get_session_state():
+    if login_session.get('state', False):
+        state = login_session['state']
+    else:
+        state = hashlib.sha256(os.urandom(1024)).hexdigest()
+        login_session['state'] = state
+
+    return state
 
 
 if __name__ == '__main__':

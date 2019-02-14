@@ -1,4 +1,4 @@
-import sys
+import os
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -33,5 +33,8 @@ class Item(Base):
     user = relationship(User)
     category = relationship(Category)
 
-engine = create_engine('sqlite:///itemcatalogue.db')
+
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+engine = create_engine(
+    f"postgresql://postgres:{DB_PASSWORD}@127.0.0.1:5432/outdoor-catalogue")
 Base.metadata.create_all(engine)

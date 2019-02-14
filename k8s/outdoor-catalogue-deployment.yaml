@@ -26,6 +26,11 @@ spec:
                 secretKeyRef:
                   name: outdoor-catalogue-secrets
                   key: CLIENT_SECRET
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: outdoor-catalogue-postgresql
+                  key: postgresql-password
           resources:
             requests:
               cpu: "25m"

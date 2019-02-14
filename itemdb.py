@@ -1,8 +1,12 @@
-from sqlalchemy import create_engine, func
+import os
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, User, Category, Item
 
-engine = create_engine('sqlite:///itemcatalogue.db')
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+engine = create_engine(
+    f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
+)
 
 Base.metadata.bind = engine
 
@@ -61,15 +65,18 @@ def getItemByID(itemId):
 
 
 def getItemsByCategory(categoryId):
-    items = session.query(Item).filter_by(
-        category_id=categoryId).order_by(Item.name).all()
+    items = session.query(Item).filter_by(category_id=categoryId).order_by(
+        Item.name).all()
     session.close()
     return items
 
 
 def addItem(item):
-    newItem = Item(name=item['name'], description=item['description'],
-                   category_id=item['category_id'], owner_id=item['owner_id'])
+    newItem = Item(
+        name=item['name'],
+        description=item['description'],
+        category_id=item['category_id'],
+        owner_id=item['owner_id'])
     session.add(newItem)
     session.commit()
     return newItem

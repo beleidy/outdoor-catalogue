@@ -8,7 +8,7 @@
         {% block navbar %}
         <div class="nav">
             <div class='logo'>
-                <a href={{ url_for("MainView") }}>
+                <a href={{ url_for("main_view") }}>
                     <h1>
                         The Outdoor Shop
                     </h1>        
@@ -21,7 +21,7 @@
                 </a>
             </div>
             <div class="logout-button-container">
-                <a href="{{ url_for('gdisconnect') }}">
+                <a href="{{ url_for('logout') }}">
                     <button>Logout</button>
                 </a>
             </div>
