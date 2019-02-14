@@ -22,7 +22,7 @@ application.secret_key = os.environ.get('FLASK_SECRET_KEY',
 
 # Sets client secret from file if developing locally
 # otherwise from enviornment
-DEV = os.environ["DEV"]
+DEV = os.environ.get("DEV", False)
 if DEV:
     with open("client_secret.json", "r") as file:
         CLIENT_SECRET = json.loads(file.read())
