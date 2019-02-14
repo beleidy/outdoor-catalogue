@@ -36,5 +36,6 @@ class Item(Base):
 
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 engine = create_engine(
-    f"postgresql://postgres:{DB_PASSWORD}@127.0.0.1:5432/outdoor-catalogue")
+    f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
+)
 Base.metadata.create_all(engine)
