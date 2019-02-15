@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: $APP_NAME-app
-          image: eu.gcr.io/$PROJECT_ID/$APP_NAME
+          image: eu.gcr.io/$PROJECT_ID/$APP_NAME@$SHA256
           env:
             - name: FLASK_SECRET_KEY
               valueFrom:
