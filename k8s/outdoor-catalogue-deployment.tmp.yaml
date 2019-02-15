@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: outdoor-catalogue
+  name: $APP_NAME
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: outdoor-catalogue
+      app: $APP_NAME
   template:
     metadata:
       labels:
-        app: outdoor-catalogue
+        app: $APP_NAME
     spec:
       containers:
-        - name: outdoor-catalogue-app
-          image: eu.gcr.io/portfolio-230113/outdoor-catalogue
+        - name: $APP_NAME-app
+          image: eu.gcr.io/$PROJECT_ID/$APP_NAME
           env:
             - name: FLASK_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: outdoor-catalogue-secrets
+                  name: $APP_NAME-secrets
                   key: FLASK_SECRET_KEY
             - name: CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: outdoor-catalogue-secrets
+                  name: $APP_NAME-secrets
                   key: CLIENT_SECRET
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: outdoor-catalogue-postgresql
+                  name: $APP_NAME-postgresql
                   key: postgresql-password
           resources:
             requests:
