@@ -124,8 +124,7 @@ def logout():
         login_session.pop('username', None)
         login_session.pop('email', None)
         login_session.pop('credentials_token', None)
-        return render_template(
-            'error.html', ERROR_MESSAGE="You have signed out")
+        return redirect(url_for('main_view'))
     else:
         return render_template(
             'error.html', ERROR_MESSAGE="You are already signed out")
