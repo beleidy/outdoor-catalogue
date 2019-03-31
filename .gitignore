@@ -5,3 +5,4 @@ static/css/style.css.map
 __pycache__
 .venv
 client_secret.json
+.vscode
