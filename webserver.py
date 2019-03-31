@@ -13,7 +13,7 @@ import google_auth_oauthlib.flow
 from itemdb import (create_new_user, add_item, get_all_categories,
                     get_all_items, get_category_by_ID, get_item_by_ID,
                     get_item_count_in_category, get_items_by_category,
-                    delete_item_by_ID, edit_item_by_ID)
+                    delete_item_by_ID, edit_item_by_ID, get_items_by_user_ID)
 from web_helpers import get_jwks_keys
 import requests
 
@@ -198,6 +198,19 @@ def item_view(itemId):
         login_session=login_session)
 
 
+@application.route('/myitems/', methods=['GET'])
+def my_items_view():
+    if not login_session.get('logged_in', False):
+        return render_template(
+            'error.html',
+            ERROR_MESSAGE="You can only add an item if you are logged in")
+    else:
+        user_db_id = login_session['db_user_id']
+        items = get_items_by_user_ID(user_db_id)
+        return render_template(
+            'my_items_view.html', items=items, login_session=login_session)
+
+
 @application.route('/items/addItem', methods=['GET', 'POST'])
 def add_item_view():
     if not login_session.get('logged_in', False):
@@ -296,5 +309,9 @@ def get_session_state():
 
 
 if __name__ == '__main__':
-    application.debug = True
-    application.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    if DEV:
+        application.debug = True
+        application.run(
+            host='localhost', port=int(os.environ.get("PORT", 5000)))
+    else:
+        application.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
