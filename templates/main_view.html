@@ -8,7 +8,7 @@
         </li>
         {% for cat in cats %}
             <li>
-                    <a href={{ url_for('CategoryView', categoryId=cat.id) }} class="category-link {{ "active" if activeCategory and activeCategory.name == cat.name }}">
+                    <a href={{ url_for('category_view', categoryId=cat.id) }} class="category-link {{ "active" if activeCategory and activeCategory.name == cat.name }}">
                         {{ cat.name }} ({{ countList[loop.index-1] }})
                     </a>
             </li>
@@ -19,7 +19,7 @@
 {% block listing %}
     <ul>
         {% for item in items %}
-            <li><a href={{ url_for('ItemView', itemId=item.id) }}>{{ item.name }}</a></li>
+            <li><a href={{ url_for('item_view', itemId=item.id) }}>{{ item.name }}</a></li>
         {% endfor %}
     </ul>
 {% endblock listing %}

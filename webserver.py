@@ -157,7 +157,7 @@ def main_view():
 
 
 @application.route('/categories/<int:categoryId>')
-def CategoryView(categoryId):
+def category_view(categoryId):
     # Get the data we need from the db
     categories = get_all_categories()
     categoryCount = len(categories)
@@ -182,7 +182,7 @@ def CategoryView(categoryId):
 
 
 @application.route('/items/<int:itemId>')
-def ItemView(itemId):
+def item_view(itemId):
     activeItem = get_item_by_ID(itemId)
     category = get_category_by_ID(activeItem.category_id)
     items = get_items_by_category(activeItem.category_id)
@@ -196,7 +196,7 @@ def ItemView(itemId):
 
 
 @application.route('/items/addItem', methods=['GET', 'POST'])
-def AddItemView():
+def add_item_view():
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
@@ -216,11 +216,11 @@ def AddItemView():
         item['category_id'] = request.form.get('item_category')
         item['owner_id'] = login_session['db_user_id']
         addedItem = add_item(item)
-        return ItemView(addedItem.id)
+        return item_view(addedItem.id)
 
 
 @application.route('/items/<int:itemId>/edit', methods=['GET', 'POST'])
-def EditItemView(itemId):
+def edit_item_view(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
@@ -245,11 +245,11 @@ def EditItemView(itemId):
         newItem['description'] = request.form.get('item_description')
         newItem['category_id'] = request.form.get('item_category')
         editedItem = edit_item_by_ID(itemId, newItem)
-        return ItemView(editedItem.id)
+        return item_view(editedItem.id)
 
 
 @application.route('/items/<int:itemId>/delete', methods=['GET', 'POST'])
-def DeleteItemView(itemId):
+def delete_item_view(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
@@ -267,12 +267,12 @@ def DeleteItemView(itemId):
     if request.method == 'POST':
         categoryId = get_item_by_ID(itemId).category_id
         if delete_item_by_ID(itemId):
-            return CategoryView(categoryId)
+            return category_view(categoryId)
 
 
 # Route for API
 @application.route('/api/v0.1/items/<int:itemId>')
-def ViewItemDetails(itemId):
+def view_item_details(itemId):
     item = get_item_by_ID(itemId)
     category = get_category_by_ID(item.category_id)
     response = {}
