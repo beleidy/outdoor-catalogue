@@ -10,7 +10,10 @@ from flask import session as login_session
 from flask import url_for
 
 import google_auth_oauthlib.flow
-from itemdb import *
+from itemdb import (create_new_user, add_item, get_all_categories,
+                    get_all_items, get_category_by_ID, get_item_by_ID,
+                    get_item_count_in_category, get_items_by_category,
+                    delete_item_by_ID, edit_item_by_ID)
 from web_helpers import get_jwks_keys
 import requests
 
@@ -95,7 +98,7 @@ def oauth2_callback():
     login_session['username'] = jwt_payload['given_name']
     login_session['email'] = jwt_payload['email']
     login_session['credentials_token'] = credentials.token
-    login_session['db_user_id'] = createNewUser(login_session)
+    login_session['db_user_id'] = create_new_user(login_session)
 
     return redirect(url_for('main_view'))
 
@@ -135,15 +138,15 @@ def main_view():
     get_session_state()
 
     # Get the data we need from the db
-    categories = getAllCategories()
+    categories = get_all_categories()
     categoryCount = len(categories)
-    items = getAllItems()
+    items = get_all_items()
     itemCount = len(items)
 
     # Generate a list of how many items are in each category
     countList = []
     for cat in categories:
-        countList.append(getItemCountInCategory(cat.id))
+        countList.append(get_item_count_in_category(cat.id))
 
     return render_template(
         'main_view.html',
@@ -157,18 +160,18 @@ def main_view():
 
 
 @application.route('/categories/<int:categoryId>')
-def CategoryView(categoryId):
+def category_view(categoryId):
     # Get the data we need from the db
-    categories = getAllCategories()
+    categories = get_all_categories()
     categoryCount = len(categories)
-    activeCategory = getCategoryByID(categoryId)
-    items = getItemsByCategory(categoryId)
+    activeCategory = get_category_by_ID(categoryId)
+    items = get_items_by_category(categoryId)
     itemCount = len(items)
 
     # Generate a list of how many items are in each category
     countList = []
     for cat in categories:
-        countList.append(getItemCountInCategory(cat.id))
+        countList.append(get_item_count_in_category(cat.id))
 
     return render_template(
         'main_view.html',
@@ -182,10 +185,10 @@ def CategoryView(categoryId):
 
 
 @application.route('/items/<int:itemId>')
-def ItemView(itemId):
-    activeItem = getItemByID(itemId)
-    category = getCategoryByID(activeItem.category_id)
-    items = getItemsByCategory(activeItem.category_id)
+def item_view(itemId):
+    activeItem = get_item_by_ID(itemId)
+    category = get_category_by_ID(activeItem.category_id)
+    items = get_items_by_category(activeItem.category_id)
 
     return render_template(
         'item_view.html',
@@ -196,14 +199,14 @@ def ItemView(itemId):
 
 
 @application.route('/items/addItem', methods=['GET', 'POST'])
-def AddItemView():
+def add_item_view():
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
             ERROR_MESSAGE="You can only add an item if you are logged in")
     if request.method == 'GET':
         # Check that the user is logged in
-        categories = getAllCategories()
+        categories = get_all_categories()
         return render_template(
             'add_item.html',
             categories=categories,
@@ -215,24 +218,24 @@ def AddItemView():
         item['description'] = request.form.get('item_description')
         item['category_id'] = request.form.get('item_category')
         item['owner_id'] = login_session['db_user_id']
-        addedItem = addItem(item)
-        return ItemView(addedItem.id)
+        addedItem = add_item(item)
+        return item_view(addedItem.id)
 
 
 @application.route('/items/<int:itemId>/edit', methods=['GET', 'POST'])
-def EditItemView(itemId):
+def edit_item_view(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
             ERROR_MESSAGE="You can only edit an item if you are logged in")
-    item = getItemByID(itemId)
+    item = get_item_by_ID(itemId)
     if item.owner_id != login_session['db_user_id']:
         return render_template(
             'error.html',
             ERROR_MESSAGE="You can only edit an item"
             "that you added with your account")
     if request.method == 'GET':
-        categories = getAllCategories()
+        categories = get_all_categories()
         return render_template(
             'edit_item.html',
             categories=categories,
@@ -244,17 +247,17 @@ def EditItemView(itemId):
         newItem['name'] = request.form.get('item_name')
         newItem['description'] = request.form.get('item_description')
         newItem['category_id'] = request.form.get('item_category')
-        editedItem = editItemById(itemId, newItem)
-        return ItemView(editedItem.id)
+        editedItem = edit_item_by_ID(itemId, newItem)
+        return item_view(editedItem.id)
 
 
 @application.route('/items/<int:itemId>/delete', methods=['GET', 'POST'])
-def DeleteItemView(itemId):
+def delete_item_view(itemId):
     if not login_session.get('logged_in', False):
         return render_template(
             'error.html',
             ERROR_MESSAGE="You can only delete an item if you are logged in")
-    item = getItemByID(itemId)
+    item = get_item_by_ID(itemId)
     if item.owner_id != login_session['db_user_id']:
         return render_template(
             'error.html',
@@ -265,16 +268,16 @@ def DeleteItemView(itemId):
         return render_template(
             'delete_item.html', item=item, login_session=login_session)
     if request.method == 'POST':
-        categoryId = getItemByID(itemId).category_id
-        if deleteItemById(itemId):
-            return CategoryView(categoryId)
+        categoryId = get_item_by_ID(itemId).category_id
+        if delete_item_by_ID(itemId):
+            return category_view(categoryId)
 
 
 # Route for API
 @application.route('/api/v0.1/items/<int:itemId>')
-def ViewItemDetails(itemId):
-    item = getItemByID(itemId)
-    category = getCategoryByID(item.category_id)
+def view_item_details(itemId):
+    item = get_item_by_ID(itemId)
+    category = get_category_by_ID(item.category_id)
     response = {}
     response['name'] = item.name
     response['description'] = item.description
