@@ -14,9 +14,9 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-def createNewUser(login_session):
+def create_new_user(login_session):
     # Checks if the user already exists in db, if not creates a new user
-    userId = getUseridByEmail(login_session['email'])
+    userId = get_userid_by_email(login_session['email'])
     if userId:
         return userId
     newUser = User(
@@ -26,7 +26,7 @@ def createNewUser(login_session):
     return newUser.id
 
 
-def getUseridByEmail(email):
+def get_userid_by_email(email):
     try:
         user = session.query(User).filter_by(email=email).one()
         return user.id
@@ -34,44 +34,44 @@ def getUseridByEmail(email):
         return False
 
 
-def getAllCategories():
+def get_all_categories():
     categories = session.query(Category).order_by(Category.name).all()
     session.close()
     return categories
 
 
-def getCategoryByID(categoryId):
+def get_category_by_ID(categoryId):
     category = session.query(Category).filter_by(id=categoryId).one()
     session.close()
     return category
 
 
-def getItemCountInCategory(categoryId):
+def get_item_count_in_category(categoryId):
     categoryCount = session.query(Item).filter_by(
         category_id=categoryId).count()
     return categoryCount
 
 
-def getAllItems():
+def get_all_items():
     items = session.query(Item).order_by(Item.name).all()
     session.close()
     return items
 
 
-def getItemByID(itemId):
+def get_item_by_ID(itemId):
     item = session.query(Item).filter_by(id=itemId).one()
     session.close()
     return item
 
 
-def getItemsByCategory(categoryId):
+def get_items_by_category(categoryId):
     items = session.query(Item).filter_by(category_id=categoryId).order_by(
         Item.name).all()
     session.close()
     return items
 
 
-def addItem(item):
+def add_item(item):
     newItem = Item(
         name=item['name'],
         description=item['description'],
@@ -82,7 +82,7 @@ def addItem(item):
     return newItem
 
 
-def editItemById(itemId, newItem):
+def edit_item_by_ID(itemId, newItem):
     item = session.query(Item).filter_by(id=itemId).one()
     item.name = newItem['name']
     item.description = newItem['description']
@@ -92,7 +92,7 @@ def editItemById(itemId, newItem):
     return item
 
 
-def deleteItemById(itemId):
+def delete_item_by_ID(itemId):
     session.query(Item).filter_by(id=itemId).delete()
     session.commit()
     return True
