@@ -3,10 +3,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, User, Category, Item
 
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
-engine = create_engine(
-    f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
-)
+DEV = os.environ.get("DEV", False)
+if DEV:
+    engine = create_engine(
+        f"postgresql://postgres@localhost:5432/outdoor-catalogue")
+else:
+    DB_PASSWORD = os.environ.get("DB_PASSWORD")
+    engine = create_engine(
+        f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
+    )
 
 Base.metadata.bind = engine
 
@@ -66,6 +71,13 @@ def get_item_by_ID(itemId):
 
 def get_items_by_category(categoryId):
     items = session.query(Item).filter_by(category_id=categoryId).order_by(
+        Item.name).all()
+    session.close()
+    return items
+
+
+def get_items_by_user_ID(user_ID):
+    items = session.query(Item).filter_by(owner_id=user_ID).order_by(
         Item.name).all()
     session.close()
     return items

@@ -5,7 +5,7 @@ from database_setup import Base, User, Category, Item
 
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 engine = create_engine(
-    f"postgresql://postgres:{DB_PASSWORD}@127.0.0.1:5432/outdoor-catalogue")
+    f"postgresql://postgres@localhost:5432/outdoor-catalogue")
 
 Base.metadata.bind = engine
 
