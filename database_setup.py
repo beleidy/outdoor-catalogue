@@ -34,8 +34,14 @@ class Item(Base):
     category = relationship(Category)
 
 
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
-engine = create_engine(
-    f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
-)
+DEV = os.environ.get("DEV", False)
+if DEV:
+    engine = create_engine(
+        f"postgresql://postgres@localhost:5432/outdoor-catalogue")
+else:
+    DB_PASSWORD = os.environ.get("DB_PASSWORD")
+    engine = create_engine(
+        f"postgresql://postgres:{DB_PASSWORD}@outdoor-catalogue-postgresql.default.svc.cluster.local:5432/outdoor-catalogue"
+    )
+
 Base.metadata.create_all(engine)
