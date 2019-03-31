@@ -10,7 +10,10 @@ from flask import session as login_session
 from flask import url_for
 
 import google_auth_oauthlib.flow
-from itemdb import get_all_categories, get_all_items, get_category_by_ID, get_item_by_ID, get_item_count_in_category, get_items_by_category
+from itemdb import (create_new_user, add_item, get_all_categories,
+                    get_all_items, get_category_by_ID, get_item_by_ID,
+                    get_item_count_in_category, get_items_by_category,
+                    delete_item_by_ID, edit_item_by_ID)
 from web_helpers import get_jwks_keys
 import requests
 
