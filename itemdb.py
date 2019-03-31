@@ -71,6 +71,13 @@ def get_items_by_category(categoryId):
     return items
 
 
+def get_items_by_user_ID(user_ID):
+    items = session.query(Item).filter_by(owner_id=user_ID).order_by(
+        Item.name).all()
+    session.close()
+    return items
+
+
 def add_item(item):
     newItem = Item(
         name=item['name'],
