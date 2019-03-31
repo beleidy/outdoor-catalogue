@@ -19,3 +19,4 @@ pyjwt = "*"
 psycopg2 = "*"
 
 [dev-packages]
+rope = "*"
