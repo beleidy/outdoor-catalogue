@@ -1,6 +1,6 @@
 # Outdoor Catalogue
 
-One Paragraph of project description goes here
+Outdoor catalogue lets users catalogue their outdoor-activity items. Users must sign in using their Google accounts in order to add or edit items. 
 
 ## Getting Started
 
@@ -8,29 +8,33 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
-
-```
-Give examples
-```
+* Python 3
+* Pipenv
+* PostgreSQL running locally on port 5432
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+Clone the repo and install dependencies
+```
+git clone https://gitlab.com/beleidy/outdoor-catalogue.git
+cd outdoor-catalogue
+Pipenv install
 
 ```
-Give the example
-```
-
-And repeat
+Setup the database and fill it with demo items
 
 ```
-until finished
+python item_populator.py
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+[Create and download your Google OAuth2.0 client secret json file](https://developers.google.com/identity/protocols/OAuth2WebServer#creatingcred) and store it as `client_secret.json`
+
+Next, run the webserver. We assign 1 to the enviornment variable `DEV` so that the server knows to connect to a local database.
+```
+DEV=1 python webserver.py
+```
+
+Point your browser at `http://localhost:5000` and you can start using the app
 
 ## Deployment
 
@@ -38,27 +42,12 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+* [Pipenv](https://pipenv.readthedocs.io/en/latest/) -- dependency management
+* [Falsk](http://flask.pocoo.org/) -- webserver framework
+* [OAuth2.0 via Google](https://developers.google.com/identity/protocols/OAuth2) -- authentication
+* [PostgreSQL](https://www.postgresql.org/)
 
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* **Amr Elbeleidy** - *Initial work*
